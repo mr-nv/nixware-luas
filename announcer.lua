@@ -2,6 +2,8 @@
 -- by mrnv / nixware.cc
 -- 6 Jul 2021
 
+-- https://mega.nz/file/7exmjQhS#LgmplEFcFgn2MEuIHfV5jnD3Oz9KLV5Z6uZRSpQNIJM
+-- drop to steamapps\common\Counter-Strike Global Offensive\lua\
 local imagesize = require( "imagesize" );
 
 -- ui
