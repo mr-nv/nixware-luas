@@ -431,162 +431,166 @@ se.register_event( "round_end" );
 se.register_event( "bomb_planted" );
 se.register_event( "vote_options" );
 
-local function FireGameEvent( event )
-    --[[if( event:get_name( ) == "vote_cast" and ffi.C.GetTickCount( ) > ( lastvotetime + 20000 ) ) then
-        if( events:get_value( 16 ) and #sounds.votecreated > 0 and event:get_int( "team", 0 ) == GetTeamNumber( entitylist.get_local_player( ) ) ) then
-            lastvotetime = ffi.C.GetTickCount( );
+-- events
+local function event_VoteOptions( event )
+    if( events:get_value( 16 ) and #sounds.votecreated > 0 ) then
+        local sound = GetRandomEntry( sounds.votecreated );
+        engine.execute_client_cmd( "playvol \"../../nix/sounds/votecreated/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+    end
+end
+client.register_callback( "vote_options", event_VoteOptions );
 
-            local sound = GetRandomEntry( sounds.votecreated );
-            engine.execute_client_cmd( "playvol \"../../nix/sounds/votecreated/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-        end]]--
-    if( event:get_name( ) == "vote_options" ) then
-        if( events:get_value( 16 ) and #sounds.votecreated > 0 ) then
-            local sound = GetRandomEntry( sounds.votecreated );
-            engine.execute_client_cmd( "playvol \"../../nix/sounds/votecreated/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-        end
-    elseif( event:get_name( ) == "player_death" ) then
-        local attacker = event:get_int( "attacker", 0 );
-        local victim = event:get_int( "userid", 0 );
+local function event_PlayerDeath( event )
+    local attacker = event:get_int( "attacker", 0 );
+    local victim = event:get_int( "userid", 0 );
 
-        if( engine.get_player_for_user_id( victim ) == engine.get_local_player( ) ) then
-            kills = 0;
+    if( engine.get_player_for_user_id( victim ) == engine.get_local_player( ) ) then
+        kills = 0;
 
-            if( attacker == 0 or engine.get_player_for_user_id( attacker ) == engine.get_local_player( ) ) then
-                if( events:get_value( 17 ) and #sounds.suicide > 0 ) then
-                    local sound = GetRandomEntry( sounds.suicide );
-                    UpdatePhoto( images.suicide );
-                    engine.execute_client_cmd( "playvol \"../../nix/sounds/suicide/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                end
+        if( attacker == 0 or engine.get_player_for_user_id( attacker ) == engine.get_local_player( ) ) then
+            if( events:get_value( 17 ) and #sounds.suicide > 0 ) then
+                local sound = GetRandomEntry( sounds.suicide );
+                UpdatePhoto( images.suicide );
+                engine.execute_client_cmd( "playvol \"../../nix/sounds/suicide/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
             end
         end
+    end
 
-        if( attacker ~= victim ) then -- not a suicide
-            if( engine.get_player_for_user_id( attacker ) == engine.get_local_player( ) ) then -- we killed someone
-                kills = kills + 1;
+    if( attacker ~= victim ) then -- not a suicide
+        if( engine.get_player_for_user_id( attacker ) == engine.get_local_player( ) ) then -- we killed someone
+            kills = kills + 1;
 
-                local headshot = event:get_bool( "headshot", false );
-                local weapon = event:get_string( "weapon", "" );
+            local headshot = event:get_bool( "headshot", false );
+            local weapon = event:get_string( "weapon", "" );
 
-                if( events:get_value( 12 ) and IsKilledUsingGrenade( weapon ) and #sounds.nadekill > 0 ) then
-                    local sound = GetRandomEntry( sounds.nadekill );
-                    engine.execute_client_cmd( "playvol \"../../nix/sounds/nadekill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                    firstblood = false;
-                    return;
-                end
+            if( events:get_value( 12 ) and IsKilledUsingGrenade( weapon ) and #sounds.nadekill > 0 ) then
+                local sound = GetRandomEntry( sounds.nadekill );
+                engine.execute_client_cmd( "playvol \"../../nix/sounds/nadekill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                firstblood = false;
+                return;
+            end
 
-                if( events:get_value( 13 ) and IsKilledWithKnife( weapon ) and #sounds.knifekill > 0 ) then
-                    local sound = GetRandomEntry( sounds.knifekill );
-                    engine.execute_client_cmd( "playvol \"../../nix/sounds/knifekill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                    firstblood = false;
-                    return;
-                end
+            if( events:get_value( 13 ) and IsKilledWithKnife( weapon ) and #sounds.knifekill > 0 ) then
+                local sound = GetRandomEntry( sounds.knifekill );
+                engine.execute_client_cmd( "playvol \"../../nix/sounds/knifekill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                firstblood = false;
+                return;
+            end
 
-                if( firstblood and events:get_value( 11 ) and #sounds.firstblood > 0 ) then
-                    local sound = GetRandomEntry( sounds.firstblood );
+            if( firstblood and events:get_value( 11 ) and #sounds.firstblood > 0 ) then
+                local sound = GetRandomEntry( sounds.firstblood );
+                time = ffi.C.GetTickCount( );
+                streak = "firstblood";
+                UpdatePhoto( images.firstblood );
+                engine.execute_client_cmd( "playvol \"../../nix/sounds/firstblood/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                firstblood = false;
+                return;
+            end
+
+            if( ( headshot and kills < 2 ) or ( headshot and kills >= 2 and hspriority:get_value( ) ) ) then
+                if( events:get_value( 10 ) and event:get_bool( "headshot", false ) and #sounds.headshot > 0 ) then
+                    local sound = GetRandomEntry( sounds.headshot );
                     time = ffi.C.GetTickCount( );
-                    streak = "firstblood";
-                    UpdatePhoto( images.firstblood );
-                    engine.execute_client_cmd( "playvol \"../../nix/sounds/firstblood/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                    firstblood = false;
-                    return;
+                    streak = "headshot";
+                    UpdatePhoto( images.headshot );
+                    engine.execute_client_cmd( "playvol \"../../nix/sounds/headshot/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
                 end
-
-                if( ( headshot and kills < 2 ) or ( headshot and kills >= 2 and hspriority:get_value( ) ) ) then
-                    if( events:get_value( 10 ) and event:get_bool( "headshot", false ) and #sounds.headshot > 0 ) then
-                        local sound = GetRandomEntry( sounds.headshot );
-                        time = ffi.C.GetTickCount( );
-                        streak = "headshot";
-                        UpdatePhoto( images.headshot );
-                        engine.execute_client_cmd( "playvol \"../../nix/sounds/headshot/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                    end
-                else
-                    if( kills >= 2 ) then
-                        time = ffi.C.GetTickCount( );
-                        if( kills == 2 ) then
-                            if( events:get_value( 0 ) and #sounds.doublekill > 0 ) then
-                                local sound = GetRandomEntry( sounds.doublekill );
-                                streak = "doublekill";
-                                UpdatePhoto( images.doublekill );
-                                engine.execute_client_cmd( "playvol \"../../nix/sounds/doublekill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                            end
-                        elseif( kills == 3 ) then
-                            if( events:get_value( 1 ) and #sounds.triplekill > 0 ) then
-                                local sound = GetRandomEntry( sounds.triplekill );
-                                streak = "triplekill";
-                                UpdatePhoto( images.triplekill );
-                                engine.execute_client_cmd( "playvol \"../../nix/sounds/triplekill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                            end
-                        elseif( kills == 4 ) then
-                            if( events:get_value( 2 ) and #sounds.dominating > 0 ) then
-                                local sound = GetRandomEntry( sounds.dominating );
-                                streak = "dominating";
-                                UpdatePhoto( images.dominating );
-                                engine.execute_client_cmd( "playvol \"../../nix/sounds/dominating/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                            end
-                        elseif( kills == 5 ) then
-                            if( events:get_value( 3 ) and #sounds.megakill > 0 ) then
-                                local sound = GetRandomEntry( sounds.megakill );
-                                streak = "megakill";
-                                UpdatePhoto( images.megakill );
-                                engine.execute_client_cmd( "playvol \"../../nix/sounds/megakill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                            end
-                        elseif( kills == 6 ) then
-                            if( events:get_value( 4 ) and #sounds.unstoppable > 0 ) then
-                                local sound = GetRandomEntry( sounds.unstoppable );
-                                streak = "unstoppable";
-                                UpdatePhoto( images.unstoppable );
-                                engine.execute_client_cmd( "playvol \"../../nix/sounds/unstoppable/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                            end
-                        elseif( kills == 7 ) then
-                            if( events:get_value( 5 ) and #sounds.wickedsick > 0 ) then
-                                local sound = GetRandomEntry( sounds.wickedsick );
-                                streak = "wickedsick";
-                                UpdatePhoto( images.wickedsick );
-                                engine.execute_client_cmd( "playvol \"../../nix/sounds/wickedsick/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                            end
-                        elseif( kills >= 8 ) then
-                            if( events:get_value( 6 ) and #sounds.monsterkill > 0 ) then
-                                local sound = GetRandomEntry( sounds.monsterkill );
-                                streak = "monsterkill";
-                                UpdatePhoto( images.monsterkill );
-                                engine.execute_client_cmd( "playvol \"../../nix/sounds/monsterkill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-                            end
+            else
+                if( kills >= 2 ) then
+                    time = ffi.C.GetTickCount( );
+                    if( kills == 2 ) then
+                        if( events:get_value( 0 ) and #sounds.doublekill > 0 ) then
+                            local sound = GetRandomEntry( sounds.doublekill );
+                            streak = "doublekill";
+                            UpdatePhoto( images.doublekill );
+                            engine.execute_client_cmd( "playvol \"../../nix/sounds/doublekill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                        end
+                    elseif( kills == 3 ) then
+                        if( events:get_value( 1 ) and #sounds.triplekill > 0 ) then
+                            local sound = GetRandomEntry( sounds.triplekill );
+                            streak = "triplekill";
+                            UpdatePhoto( images.triplekill );
+                            engine.execute_client_cmd( "playvol \"../../nix/sounds/triplekill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                        end
+                    elseif( kills == 4 ) then
+                        if( events:get_value( 2 ) and #sounds.dominating > 0 ) then
+                            local sound = GetRandomEntry( sounds.dominating );
+                            streak = "dominating";
+                            UpdatePhoto( images.dominating );
+                            engine.execute_client_cmd( "playvol \"../../nix/sounds/dominating/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                        end
+                    elseif( kills == 5 ) then
+                        if( events:get_value( 3 ) and #sounds.megakill > 0 ) then
+                            local sound = GetRandomEntry( sounds.megakill );
+                            streak = "megakill";
+                            UpdatePhoto( images.megakill );
+                            engine.execute_client_cmd( "playvol \"../../nix/sounds/megakill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                        end
+                    elseif( kills == 6 ) then
+                        if( events:get_value( 4 ) and #sounds.unstoppable > 0 ) then
+                            local sound = GetRandomEntry( sounds.unstoppable );
+                            streak = "unstoppable";
+                            UpdatePhoto( images.unstoppable );
+                            engine.execute_client_cmd( "playvol \"../../nix/sounds/unstoppable/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                        end
+                    elseif( kills == 7 ) then
+                        if( events:get_value( 5 ) and #sounds.wickedsick > 0 ) then
+                            local sound = GetRandomEntry( sounds.wickedsick );
+                            streak = "wickedsick";
+                            UpdatePhoto( images.wickedsick );
+                            engine.execute_client_cmd( "playvol \"../../nix/sounds/wickedsick/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+                        end
+                    elseif( kills >= 8 ) then
+                        if( events:get_value( 6 ) and #sounds.monsterkill > 0 ) then
+                            local sound = GetRandomEntry( sounds.monsterkill );
+                            streak = "monsterkill";
+                            UpdatePhoto( images.monsterkill );
+                            engine.execute_client_cmd( "playvol \"../../nix/sounds/monsterkill/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
                         end
                     end
                 end
             end
         end
+    end
 
-        firstblood = false;
-    elseif( event:get_name( ) == "round_prestart" ) then
-        firstblood = true;
-        if( roundreset:get_value( ) ) then
-            kills = 0;
-        end
+    firstblood = false;
+end
+client.register_callback( "player_death", event_PlayerDeath );
 
-        if( events:get_value( 8 ) and #sounds.roundstart > 0 ) then
-            playroundstart = true;
-        end
-    elseif( event:get_name( ) == "round_end" ) then
-        c4 = 0;
-        if( events:get_value( 9 ) and #sounds.roundend > 0 ) then
-            local sound = GetRandomEntry( sounds.roundend );
-            UpdatePhoto( images.roundend );
-            engine.execute_client_cmd( "playvol \"../../nix/sounds/roundend/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-        end
-    elseif( event:get_name( ) == "bomb_planted" ) then
-        if( events:get_value( 14 ) and #sounds.bombplanted > 0 ) then
-            local sound = GetRandomEntry( sounds.bombplanted );
-            engine.execute_client_cmd( "playvol \"../../nix/sounds/bombplanted/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
-        end
+local function event_RoundPrestart( event )
+    firstblood = true;
+    if( roundreset:get_value( ) ) then
+        kills = 0;
+    end
 
-        if( events:get_value( 15 ) ) then
-            local mp_c4timer = se.get_convar( "mp_c4timer" );
-            c4 = mp_c4timer:get_float( );
-        end
+    if( events:get_value( 8 ) and #sounds.roundstart > 0 ) then
+        playroundstart = true;
     end
 end
-client.register_callback( "fire_game_event", FireGameEvent );
+client.register_callback( "round_prestart", event_RoundPrestart );
+
+local function event_RoundEnd( event )
+    c4 = 0;
+    if( events:get_value( 9 ) and #sounds.roundend > 0 ) then
+        local sound = GetRandomEntry( sounds.roundend );
+        UpdatePhoto( images.roundend );
+        engine.execute_client_cmd( "playvol \"../../nix/sounds/roundend/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+    end
+end
+client.register_callback( "round_end", event_RoundEnd );
+
+local function event_BombPlanted( event )
+    if( events:get_value( 14 ) and #sounds.bombplanted > 0 ) then
+        local sound = GetRandomEntry( sounds.bombplanted );
+        engine.execute_client_cmd( "playvol \"../../nix/sounds/bombplanted/" .. sound .. "\" " .. ( volume:get_value( ) / 100 ) );
+    end
+
+    if( events:get_value( 15 ) ) then
+        local mp_c4timer = se.get_convar( "mp_c4timer" );
+        c4 = mp_c4timer:get_float( );
+    end
+end
+client.register_callback( "bomb_planted", event_BombPlanted );
 
 local font = renderer.setup_font( "C:\\Windows\\Fonts\\verdana.ttf", 24, 0 );
 local function Paint( )
