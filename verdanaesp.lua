@@ -118,14 +118,45 @@ end
 -- main code
 local font = renderer.setup_font( "C:/Windows/Fonts/Verdana.ttf", 17, 0 );
 
+local m_vecOrigin = se.get_netvar( "DT_BaseEntity", "m_vecOrigin" );
+
+local function SortByDistance( players, me )
+    local ret = { };
+
+    local pos = me:get_prop_vector( m_vecOrigin );
+
+    -- get players, calculate our distance to them and put info in a table
+    for i = 1, #players do
+        local player = players[ i ];
+        if( player ~= nil ) then
+            local playerpos = player:get_prop_vector( m_vecOrigin );
+            local distance = pos:dist_to( playerpos );
+
+            table.insert( ret, { player, distance } );
+        end
+    end
+
+    -- sort
+    table.sort( ret, function( a, b )
+        return a[ 2 ] > b[ 2 ];
+    end );
+
+    return ret;
+end
+
 local function luaesp_Paint( )
     if( not engine.is_connected( ) or not engine.is_in_game( ) ) then return end;
 
     local players = entitylist.get_players( playertype:get_value( ) );
     if( players == nil ) then return end;
 
+    local me = entitylist.get_local_player( );
+    if( me == nil ) then return end;
+
+    players = SortByDistance( players, me );
+
     for i = 1, #players do
-        local player = players[ i ];
+        local player = players[ i ][ 1 ];
 
         if( player ~= nil and player:get_index( ) ~= engine.get_local_player( ) and player:is_alive( ) ) then
             local alpha = 255;
